@@ -12,89 +12,100 @@ const autoprefixer = require('autoprefixer');
 const imageMin = require('gulp-imagemin'); //壓縮圖片
 
 /*   HTML   */
-gulp.task('Pug', () => {
-    return gulp.src(['./source/view/**/*.pug'])
-        .pipe(Plumber())
-        .pipe(Pug({
-            pretty: true
-        }))
-        .pipe(gulp.dest('./public'))
+gulp.task('Pug', (done) => {
+  gulp.src(['./source/view/**/*.pug'])
+    .pipe(Plumber())
+    .pipe(Pug({
+      pretty: true
+    }))
+    .pipe(gulp.dest('./public'))
+  done()
 });
 
 /*   CSS   */
-gulp.task('Sass', function () {
-    var processors = [
-        autoprefixer({
-            browsers: ['last 5 version'],
-        })
-    ];
+gulp.task('Sass', () => {
+  var processors = [
+    autoprefixer({
+      browsers: ['last 5 version'],
+    })
+  ];
 
-    return gulp.src(['./source/stylesheets/**/*.sass', './source/stylesheets/**/*.scss'])
-        .pipe(Plumber())
-        .pipe(Sass({
-                outputStyle: 'nested'
-            })
-            .on('error', Sass.logError))
-        .pipe(Postcss(processors))
-        .pipe(gulp.dest('./source/stylesheets/css'))
+  return gulp.src(['./source/stylesheets/**/*.sass', './source/stylesheets/**/*.scss'])
+    .pipe(Plumber())
+    .pipe(Sass({
+        outputStyle: 'nested'
+      })
+      .on('error', Sass.logError))
+    .pipe(Postcss(processors))
+    .pipe(gulp.dest('./source/stylesheets/css'))
 });
 
-gulp.task('CSSConcat', ['Sass'], function () {
-    return gulp.src('./source/stylesheets/css/*.css')
-        .pipe(Concat('all.css'))
-        .pipe(gulp.dest('./public/stylesheets'))
-});
+gulp.task('CSSConcat', gulp.series('Sass', () => {
+  return gulp.src('./source/stylesheets/css/*.css')
+    .pipe(Concat('all.css'))
+    .pipe(gulp.dest('./public/stylesheets'))
+}));
 
-gulp.task('cleanCSS', ['CSSConcat'], function () {
-    return gulp.src('./public/stylesheets/all.css')
-        .pipe(Rename(function (path) {
-            path.basename += ".min"
-            path.extname = ".css"
-        }))
-        .pipe(cleanCSS())
-        .pipe(gulp.dest('./public/stylesheets'))
-});
+gulp.task('cleanCSS', gulp.series('CSSConcat', () => {
+  return gulp.src('./public/stylesheets/all.css')
+    .pipe(Rename(function (path) {
+      path.basename += ".min"
+      path.extname = ".css"
+    }))
+    .pipe(cleanCSS())
+    .pipe(gulp.dest('./public/stylesheets'))
+}));
 
 /*   JS   */
-gulp.task('JSConcat', function () {
-    return gulp.src('./source/js/**/*.js')
-        .pipe(Plumber())
-        .pipe(Concat('all.js'))
-        .pipe(Babel({
-            presets: [['env', {modules: false}]]
-        }))
-        .pipe(gulp.dest('./public/js'))
+gulp.task('assets', () => {
+  return gulp.src('./source/js/*.js')
+    .pipe(gulp.dest('./public/js'))
+})
+
+gulp.task('JSConcat', () => {
+  return gulp.src('./source/js/app/*.js')
+    .pipe(Plumber())
+    .pipe(Concat('all.js'))
+    .pipe(Babel({
+      presets: [
+        ['env', {
+          modules: false
+        }]
+      ]
+    }))
+    .pipe(gulp.dest('./public/js/app'))
 });
 
-gulp.task('minifyJS', ['JSConcat'], function () {
-    return gulp.src('./public/js/all.js')
-        .pipe(Plumber())
-        .pipe(Uglify(({
-            compress: {
-                drop_console: true
-            }
-        })))
-        .pipe(Rename(function (path) {
-            path.basename += ".min";
-            path.extname = ".js";
-        }))
-        .pipe(gulp.dest('./public/js'))
-});
+gulp.task('minifyJS', gulp.series('JSConcat', () => {
+  return gulp.src('./public/js/app/*.js')
+    .pipe(Plumber())
+    .pipe(Uglify(({
+      compress: {
+        drop_console: true
+      }
+    })))
+    .pipe(Rename(function (path) {
+      path.basename += ".min";
+      path.extname = ".js";
+    }))
+    .pipe(gulp.dest('./public/js/app'))
+}));
 
 /*   OTHERS   */
-gulp.task('imageMin', function () {
-    gulp.src('./source/image/*')
-        .pipe(imageMin())
-        .pipe(gulp.dest('./public/images'));
+gulp.task('imageMin', () => {
+  return gulp.src('./source/image/*')
+    .pipe(imageMin())
+    .pipe(gulp.dest('./public/images'));
 });
 
 /*   CMD指令   */
-gulp.task('watch', function () {
-    gulp.watch(['./source/**/*.pug'], ['Pug']);
-    gulp.watch(['./source/stylesheets/**/*.sass', './source/stylesheets/**/*.scss'], ['cleanCSS']);
-    gulp.watch('./source/js/**/*.js', ['minifyJS']);
+gulp.task('watch', (done) => {
+  gulp.watch(['./source/**/*.pug'], gulp.series('Pug'));
+  gulp.watch(['./source/stylesheets/**/*.sass', './source/stylesheets/**/*.scss'], gulp.series('cleanCSS'));
+  gulp.watch('./source/js/**/*.js', gulp.series('minifyJS'));
+  done()
 });
 
-gulp.task('build', ['Pug', 'cleanCSS', 'minifyJS', 'imageMin']);
+gulp.task('build', gulp.series('Pug', 'cleanCSS', 'minifyJS', 'imageMin'));
 
-gulp.task('default', ['Pug', 'cleanCSS', 'minifyJS']);
+gulp.task('default', gulp.series('Pug', 'cleanCSS', 'assets', 'minifyJS'));

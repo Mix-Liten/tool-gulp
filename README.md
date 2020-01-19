@@ -1,5 +1,7 @@
 # Gulp 
 
+### 已更新到 Gulp 4.02 版
+
 這個懶人包提供的功能有：
 
 1. 轉換 Pug 為 HTML
@@ -10,12 +12,7 @@
 
 ## 安裝環境
 
-1. 安裝 gulp到全域
-```
-npm install gulp -g
-```
-
-2. 安裝使用到的套件
+1. 安裝使用到的套件
 ```
 cd 位置
 npm install
@@ -27,17 +24,17 @@ npm install
 
 1. 監聽改變(Pug, SASS/SCSS, JS)
 ```
-gulp watch
+npm run watch
 ```
 
 2. 完整編譯(Pug, SASS/SCSS, JS, image)
 ```
-gulp build
+npm run build
 ```
 
 3. 編譯(Pug, SASS/SCSS, JS)
 ```
-gulp 
+npm run default 
 ```
 
 ### P.S：
